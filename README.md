@@ -1,5 +1,8 @@
 # Barberia El Nichepeina Nichepilla
+
+
 QUE ES UNA BARBERIA :
+
 Una barberia o peluqueria es un local donde se ofrecen varios servicios estéticos, principalmente el corte de pelo, pero también suelen realizarse otros como afeitado, depilado, manicura, pedicura, etc. Cuando se trata de muchos servicios diferentes suele llamarse salón de belleza.
 
 HERRMANIENTAS DE BARBERIA :
@@ -24,10 +27,12 @@ MISION Y VISON DE NUESTRA BARBERIA.
 
 MISION:
 
+
 Es una barberia que propone calidad, servicio, y economía, logrando tener identidad propia, sentido de originalidad, y pertenencia con nuestros productos, teniendo en cuenta la competitividad del mercado, para así poder mejorar nuestros objetivos. 
 
 
 VISION:
+
 
 La barberia busca fortalecer y lograr la satisfacción de los clientes, cumpliendo las metas planteadas; con su respectivo plan o punto propuesto muy pronto en marcha. Logrando orientar las decisiones estratégicas del crecimiento para marcar la diferencia con la competencia. 
 
