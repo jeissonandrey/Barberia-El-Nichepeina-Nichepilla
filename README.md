@@ -1,5 +1,3 @@
-# Peluquería Estoy hasta el pelo
-como empazar con una peluqueria y lo basico de ello
- la mision de nuestra peluqueria es dar los mejores cortes y el mejor servicio a nuestros clientes _:3_
- la vision es ser de las  mejores peluquerias conocidas nacionalmente _:3_
-
+# Barberia El Nichepeina Nichepilla
+QUE ES UNA BARBERIA O PELUQUERIA...
+Una peluquería o barbería es un local donde se ofrecen varios servicios estéticos, principalmente el corte de pelo, pero también suelen realizarse otros como afeitado, depilado, manicura, pedicura, etc. Cuando se trata de muchos servicios diferentes suele llamarse salón de belleza.
