@@ -1,0 +1,212 @@
+# Ejemplo de script para procesar un archivo Excel y generar un reporte basado en niveles jerárquicos
+
+from openpyxl import load_workbook, Workbook
+from datetime import datetime
+import tkinter as tk
+from tkinter import messagebox
+from pathlib import Path
+from openpyxl.styles import PatternFill, Font, Alignment #Para estilos del documento
+from openpyxl.utils import get_column_letter #Para ajustar ancho de columnas
+import sys, os
+
+#Instanciar ventana oculta para mensajes
+root = tk.Tk()
+root.withdraw()
+try:
+
+    # Obtener la ruta base dependiendo si es .exe o script
+    if getattr(sys, 'frozen', False):
+        # Si es un .exe generado por PyInstaller
+        ruta_base = os.path.dirname(sys.executable)
+    else:
+        # Si se ejecuta como script normal .py
+        ruta_base = os.path.dirname(os.path.abspath(__file__))
+
+    # Ruta del archivos de entrada
+    ruta_archivo = os.path.join(ruta_base, "Result container - SoD results.xlsx") # Documento principal
+    ruta_traduccion = os.path.join(ruta_base, "Detail SoD rule report v2.xlsx") # Documento de traducción
+
+
+    # Cargar el archivo y la hoja activa
+    wb = load_workbook(ruta_archivo, data_only=True)
+    hoja_inicial = wb.active
+except Exception as e:
+    messagebox.showerror("Error al cargar archivo", f"No se pudo cargar el archivo: {e} \n Verificar existencia y nombre correcto del documento y sus hojas \n No se encontro el documento: Result container - SoD results.xlsx")
+    exit()
+
+try: 
+
+    # Crear un nuevo libro para el reporte final
+    wb_salida = Workbook()
+    hoja_salida = wb_salida.active
+    hoja_salida.title = "Resultado generado"
+    #wb_salida.visible = True
+
+    # Encabezados del reporte final
+    encabezados = [
+        "UserID", "User", "SoD Rule", "Description",
+        "Variable", "Role (causing)", "Tcode (causing)"
+    ]
+    hoja_salida.append(encabezados)
+
+
+    # Aplicar estilo a los encabezados
+    encabezado_fill = PatternFill(start_color="1E90FF", end_color="1E90FF", fill_type="solid")  # azul tipo DodgerBlue
+    encabezado_font = Font(color="FFFFFF", bold=True)  # blanco y negrita
+    encabezado_align = Alignment(horizontal="center", vertical="center")
+
+    for celda in hoja_salida[1]:  # fila 1 = encabezados
+        celda.fill = encabezado_fill
+        celda.font = encabezado_font
+        celda.alignment = encabezado_align
+
+
+    # Variables de contexto
+    nivel1 = {}
+    nivel2 = None
+    encabezado_nivel3 = None
+    cambio_grupo = False
+    marcar_encabezado_anterior = True
+
+    # Variables para insertar datos limpios
+    valores_unicos = set()
+    filas_unicas_grupo = []
+
+    # Recorrer filas de la hoja inicial
+    for fila in hoja_inicial.iter_rows(values_only=True):
+        col_a, col_b, col_c, col_d, *_resto = fila
+
+        # -------- Nivel 1 --------
+        if col_a not in (None, ""):
+            nivel1 = {
+                "UserID": fila[7] if len(fila) > 7 else "",
+                "User": fila[8] if len(fila) > 8 else "",
+                "SoD Rule": col_c,
+                "Description": col_d
+            }
+            nivel2 = None
+            encabezado_nivel3 = None
+            cambio_grupo = False
+            continue
+
+        # -------- Nivel 2 --------
+        if col_a in (None, "") and col_b not in (None, "") and str(col_b).strip() in ("A", "B", "C", "D"):
+            nivel2 = str(col_b).strip()
+            #encabezado_nivel3 = None
+            grupo_actual = str(col_b).strip()
+            continue
+
+
+        # -------- Nivel 3 encabezados --------
+        if col_d and any(k in str(col_d) for k in ["Role", "Tcode", "Object"]):
+            encabezado_nivel3 = str(col_d).strip()
+            
+            if marcar_encabezado_anterior == True:
+                encabezado_anterior = str(col_d).strip()
+                marcar_encabezado_anterior = False
+
+            if encabezado_nivel3 != encabezado_anterior:
+                    cambio_grupo = True
+                    #marcar_encabezado_anterior = True
+
+            #Validar datos unicos por grupo e insertar en documento final
+            if cambio_grupo:
+                valores_unicos.clear()
+                cambio_grupo = False
+                for fila_datos in filas_unicas_grupo:
+                    clave = (fila_datos[5], fila_datos[6])
+                    if clave not in valores_unicos:
+                        valores_unicos.add(clave)
+                        hoja_salida.append(fila_datos)
+                filas_unicas_grupo.clear()
+
+            continue
+
+        # -------- Nivel 3 datos --------
+        if encabezado_nivel3 and col_c not in (None, "") and col_d not in (None, ""):
+            # Ignorar filas con 'false'
+            omitir_false = str(col_d).lower()
+            
+            if omitir_false != "false" and omitir_false != "falso":
+
+                filas_unicas_grupo.append([
+                    nivel1.get("UserID", ""),
+                    nivel1.get("User", ""),
+                    nivel1.get("SoD Rule", ""),
+                    nivel1.get("Description", ""),
+                    nivel2 or "",
+                    col_c,
+                    col_d if any(x in encabezado_nivel3 for x in ["Tcode", "Object"]) else ""
+                ])
+                
+            else:
+                marcar_encabezado_anterior = True
+
+    #Insertar ultimos datos pendientes
+    valores_unicos.clear()
+    cambio_grupo = False
+    for fila_datos in filas_unicas_grupo:
+        clave = (fila_datos[5], fila_datos[6])
+        if clave not in valores_unicos:
+            valores_unicos.add(clave)
+            hoja_salida.append(fila_datos)
+    filas_unicas_grupo.clear()
+
+except Exception as e:
+    messagebox.showerror("Error al procesar datos", f"No se pudo procesar el archivo: {e} \n Verificar formato y contenido del documento o contacar al desarrollador")
+    exit()
+
+# --- Traducción de descripciones desde otro archivo Excel ---
+
+try:
+    wb_traduccion = load_workbook(ruta_traduccion, data_only=True)
+    hoja_traduccion = wb_traduccion["Detail SoD rule report"]
+
+    # Crear un diccionario de traducciones
+    traducciones = {}
+
+    for fila in hoja_traduccion.iter_rows(values_only=True):
+        # Combinar columnas A-D como posibles códigos
+        codigos_sod = [str(c).strip() for c in fila[0:4] if c]
+        # Combinar columnas E-G como descripción traducida
+        traduccion = " ".join([str(t).strip() for t in fila[4:7] if t])
+
+        for codigo in codigos_sod:
+            traducciones[codigo] = traduccion
+
+    print(f"Traducciones cargadas: {len(traducciones)}")
+
+    # Aplicar traducciones a la hoja resultado
+    for fila in hoja_salida.iter_rows(min_row=2):
+        sod_rule = str(fila[2].value).strip() if fila[2].value else ""
+        if sod_rule in traducciones:
+            fila[3].value = traducciones[sod_rule]  # reemplaza la descripción (columna D)
+
+    print("Traducción aplicada correctamente.")
+
+except Exception as e:
+    messagebox.showerror("Error al procesar archivo", f"No se pudo aplicar la traducción: {e} \n Se continuará sin traducción, por favor validar existencia y nombre correcto del documneto \n Documento esperado: Detail SoD rule report v2.xlsx")
+
+
+# Ajustar ancho de columnas con los resultados finales
+    for col in hoja_salida.columns:
+        max_length = 0
+        columna = get_column_letter(col[0].column)
+        for celda in col:
+            try:
+                if celda.value:
+                    max_length = max(max_length, len(str(celda.value)))
+            except:
+                pass
+        # Se deja +2 para un poco de margen
+        hoja_salida.column_dimensions[columna].width = max_length + 2
+
+# Guardar resultado
+fecha_hora_salida = datetime.now().strftime("%Y%m%d_%H%M%S")
+ruta_salida = os.path.join(
+    ruta_base,
+    f"Resultado_generado_{fecha_hora_salida}.xlsx"
+)
+
+wb_salida.save(ruta_salida)
+messagebox.showinfo("Proceso Exitoso", f"✅ Archivo generado exitosamente: {ruta_salida}")
